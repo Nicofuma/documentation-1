@@ -785,11 +785,18 @@ For tasks that are guaranteed to finish within the time limit, the [Cron add-on]
 
 ### Workers
 
-Tasks that will take longer than 120s to execute, or that are triggered by a user request and should be handled asyncronously to not keep the user waiting, are best handled by workers. Workers are long-running processes started in containers. Just like the web processes but they are not listening on any port and therefore do not receive http requests. You can use workers, for example, to poll a queue and execute tasks in the background or handle long-running periodical calculations.
+Workers are long-running processes started in containers. Just like the web
+processes but they are not listening on any port and therefore do not receive
+http requests. Workers are the best way for handling tasks that will take longer
+than 120s to execute, or that are triggered by a user request which are handled
+asynchronously to prevent idle time for users. For example, handling
+long-running periodical calculations or to poll a queue and execute tasks in the
+background.
 
-Each worker runs in a seperate isolated container. The containers have exactly
-the same runtime environment defined by the stack chosen and the buildpack used
-and have the same access to all of the deployments add-ons.
+You can create multiple workers for individual tasks. Each worker runs in a
+separate isolated container. The containers have exactly the same runtime
+environment defined by the stack chosen and the buildpack used and have the same
+access to all of the deployments add-ons.
 
 Note: Workers sometimes get interrupted and restarted on a different host for
 the following reasons:
@@ -797,14 +804,23 @@ the following reasons:
  - containers are redistributed to provide the best performance
  - security updates are applied
 
-This means all your worker operations should be idempotent. If possible a `SIGTERM`
-signal is send to your worker before the shutdown.
+This means all your worker operations should be idempotent. If possible a
+`SIGTERM` signal is send to your worker before the shutdown.
 
 #### Starting a Worker
 
-Workers can be started via the command line client's worker.add command.
+Depending on the [stack](#stack) your app is running on, you may have to edit
+the app's `Procfile` first.
+If your app is running on the Pinky stack, add the following line to your app's
+`Procfile`:
 
-For the Luigi stack (only supporting PHP), use the PHP filename as the `WORKER_NAME`. But for apps on the Pinky stack, first specifiy how to start the worker by adding a new line to your app's `Procfile` and then use that as the `WORKER_NAME`.
+*Note: The WORKER_NAME can be chosen arbitrary, but we recommend to name it in
+a way, that it describes the task of the worker in a short way*
+~~~
+WORKER_NAME: COMMANDLINE_COMMAND_TO_EXECUTE SCRIPT
+~~~
+
+Workers can be started via the command line client's `worker.add` command.
 
 ~~~
 $ cctrlapp APP_NAME/DEP_NAME worker.add WORKER_NAME [WORKER_PARAMS]
@@ -818,7 +834,7 @@ $ cctrlapp APP_NAME/DEP_NAME worker.add WORKER_NAME "PARAM1 PARAM2 PARAM3"
 
 #### List Running Workers
 
-To get a list of currently running workers use the worker command.
+To get a list of currently running workers use the `worker` command.
 
 ~~~
 $ cctrlapp APP_NAME/DEP_NAME worker
@@ -827,7 +843,8 @@ Workers
    1 WRK_ID
 ~~~
 
-You can also get all the worker details by appending the WRK_ID to the worker command.
+You can also get all the worker details by appending the WRK_ID to the worker
+command.
 
 ~~~
 $ cctrlapp APP_NAME/DEP_NAME worker WRK_ID
@@ -839,11 +856,12 @@ params   : "PARAM1 PARAM2 PARAM3"
 
 #### Stopping Workers
 
-Workers can be either stopped via the command line client or by exiting the process with a zero exit code.
+Workers can be either stopped via the command line client or by exiting the
+process with a zero exit code.
 
 ##### Via Command Line
 
-To stop a running worker via the command line use the worker.remove command.
+To stop a running worker via the command line use the `worker.remove` command.
 
 ~~~
 $ cctrlapp APP_NAME/DEP_NAME worker.remove WRK_ID
@@ -853,7 +871,8 @@ To get the WRK_ID refer to the listing workers section above.
 
 ##### Via Exit Codes
 
-To stop a worker programatically use UNIX style exit codes. There are three distinct exit codes available.
+To stop a worker programatically use UNIX style exit codes. There are three
+distinct exit codes available.
 
  * exit (0); // Everything OK. Worker will be stopped.
  * exit (1); // Error. Worker will be restarted.
@@ -863,7 +882,7 @@ For more details refer to the [PHP example](#php-worker-example) below.
 
 #### Worker log
 
-As already explained in the [Logging section](https://www.cloudcontrol.com/dev-center/platform-documentation#logging) all stdout and stderr output of workers is redirected to the worker log. To see the output in a tail -f like fashion use the log command.
+As already explained in the [Logging section](https://www.cloudcontrol.com/dev-center/platform-documentation#logging) all stdout and stderr output of workers is redirected to the worker log. To see the output in a tail -f like fashion use the `log` command.
 
 ~~~
 $ cctrlapp APP_NAME/DEP_NAME log worker
